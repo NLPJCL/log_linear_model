@@ -115,6 +115,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="dataset.cpp" />
+    <ClCompile Include="log_linear_model.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="dataset.h" />
+    <ClInclude Include="log_linear_model.h" />
+    <ClInclude Include="sentence.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
