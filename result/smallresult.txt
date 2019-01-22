@@ -1,0 +1,85 @@
+train共803个句子，共20454个词
+dev共1910个句子，共50319个词
+iterator 0
+train0.948274
+dev0.84322
+Use Time:5.993
+iterator 1
+train0.971693
+dev0.850394
+Use Time:6.007
+iterator 2
+train0.981177
+dev0.854389
+Use Time:5.989
+iterator 3
+train0.983182
+dev0.855701
+Use Time:5.991
+iterator 4
+train0.994427
+dev0.862418
+Use Time:6.027
+iterator 5
+train0.998533
+dev0.864524
+Use Time:5.997
+iterator 6
+train0.99956
+dev0.865677
+Use Time:5.959
+iterator 7
+train0.999707
+dev0.866671
+Use Time:5.989
+iterator 8
+train0.998876
+dev0.866253
+Use Time:6.038
+iterator 9
+train0.999804
+dev0.866432
+Use Time:5.967
+iterator 10
+train1
+dev0.866651
+Use Time:5.999
+iterator 11
+train1
+dev0.86685
+Use Time:5.948
+iterator 12
+train1
+dev0.867088
+Use Time:5.98
+iterator 13
+train1
+dev0.867048
+Use Time:5.989
+iterator 14
+train1
+dev0.867187
+Use Time:6.005
+iterator 15
+train1
+dev0.867346
+Use Time:5.984
+iterator 16
+train1
+dev0.867962
+Use Time:5.963
+iterator 17
+train1
+dev0.868539
+Use Time:6.006
+iterator 18
+train1
+dev0.86836
+Use Time:5.977
+iterator 19
+train1
+dev0.868618
+Use Time:5.95
+train最大值是:=1
+dev最大值是:=0.867962
+Use Time:119.828

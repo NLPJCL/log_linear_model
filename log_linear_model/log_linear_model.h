@@ -1,39 +1,44 @@
-#pragma once
+ï»¿#pragma once
 #include<iostream>
-#include<map>
+#include<unordered_map>
 #include<vector>
-#include<cmath>//×ÔÈ»¶ÔÊıµÄÖ¸Êı¡£
+#include<cmath>//è‡ªç„¶å¯¹æ•°çš„æŒ‡æ•°ã€‚
+#include<map>
 #include"dataset.h"
+#include"windows.h"
+#include"numeric"
 using namespace std;
 class log_linear_model
 {
 public:
 	void create_feature_space();
-	void SGD_online_training();
-	log_linear_model();
-	//´æ´¢¡£
+	void SGD_online_training(bool shuffle, int iterator, int exitor);
+	log_linear_model(const string &train_,const string &dev_,const string &test_);
+	//å­˜å‚¨ã€‚
 	void save_file(int i);
 	~log_linear_model();
 private:
-	//»ù´¡Êı¾İ¼¯¡£
+	//åŸºç¡€æ•°æ®é›†ã€‚
 	dataset train;
 	dataset dev;
-	map<string, int> model;//ÌØÕ÷¿Õ¼ä¡£
-	map<string, int> tag;//´ÊĞÔ
+	dataset test;
+	unordered_map<string, int> model;//ç‰¹å¾ç©ºé—´ã€‚
+	map<string, int> tag;//è¯æ€§
+	vector<string> vector_tag;
 	vector<double> w;
-	map<int, double> g;
 	vector<string> value;
-	//´´½¨ÌØÕ÷¿Õ¼ä¡£
-	vector<string> create_feature(sentence sentence, int pos);
-	//ÔÚÏßËã·¨
+	unordered_map<int, double> g;
+	//åˆ›å»ºç‰¹å¾ç©ºé—´ã€‚
+	vector<string> create_feature(const sentence &sentence, int pos);
+	//åœ¨çº¿ç®—æ³•
 	void update_w(int eta);
-	void update_g(sentence sen, int pos, string tag);
-	string maxscore_tag(sentence sen, int pos);
-	vector<int> get_id(vector<string> f);
-	int count_score(int offset, vector<int> fv);
-	double max(double x1, double x2);
-	//ÆÀ¼Û¡£
-	double evaluate(dataset);
+	void update_g(sentence &sen, int pos, string &tag);
+	string maxscore_tag(sentence &sen, int pos);
+	vector<int> get_id(vector<string> &f);
+	int count_score(int offset, vector<int> &fv);
+//	double max(double x1, double x2);
+	//è¯„ä»·ã€‚
+	double evaluate(dataset&);
 };
 
 #pragma once

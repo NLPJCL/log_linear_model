@@ -1,15 +1,15 @@
-#include "log_linear_model.h"
-//ÊµÀı»¯ÌØÕ÷
-vector<string> log_linear_model::create_feature(sentence sentence, int pos)
+ï»¿#include "log_linear_model.h"
+//å®ä¾‹åŒ–ç‰¹å¾
+vector<string> log_linear_model::create_feature(const sentence &sentence, int pos)
 {
-	string word = sentence.word[pos];//µ±Ç°´Ê¡£
-	string word_char_first = sentence.word_char[pos][0];//µ±Ç°´ÊµÄµÚÒ»¸öÔªËØ¡£
-	string word_char_last = sentence.word_char[pos][sentence.word_char[pos].size() - 1];//µ±Ç°´ÊµÄ×îºóÒ»¸öÔªËØ¡£
+	string word = sentence.word[pos];//å½“å‰è¯ã€‚
+	string word_char_first = sentence.word_char[pos][0];//å½“å‰è¯çš„ç¬¬ä¸€ä¸ªå…ƒç´ ã€‚
+	string word_char_last = sentence.word_char[pos][sentence.word_char[pos].size() - 1];//å½“å‰è¯çš„æœ€åä¸€ä¸ªå…ƒç´ ã€‚
 	string word_m1;
 	string word_char_m1m1;
 	string word_p1;
 	string word_char_p1_first;
-	int word_count = sentence.word.size();//µ±Ç°¾äµÄ×Ü´ÊÊı¡£
+	int word_count = sentence.word.size();//å½“å‰å¥çš„æ€»è¯æ•°ã€‚
 	if (pos == 0)
 	{
 		word_m1 = "$$";
@@ -31,85 +31,88 @@ vector<string> log_linear_model::create_feature(sentence sentence, int pos)
 		word_char_p1_first = sentence.word_char[pos + 1][0];
 	}
 	vector<string> f;
-	f.push_back("02:*" + word);
-	f.push_back("03:*" + word_m1);
-	f.push_back("04:*" + word_p1);
-	f.push_back("05:*" + word + "*" + word_char_m1m1);
-	f.push_back("06:*" + word + "*" + word_char_p1_first);
-	f.push_back("07:*" + word_char_first);
-	f.push_back("08:*" + word_char_last);
+	f.reserve(50);
+	f.emplace_back("02:*" + word);
+	f.emplace_back("03:*" + word_m1);
+	f.emplace_back("04:*" + word_p1);
+	f.emplace_back("05:*" + word + "*" + word_char_m1m1);
+	f.emplace_back("06:*" + word + "*" + word_char_p1_first);
+	f.emplace_back("07:*" + word_char_first);
+	f.emplace_back("08:*" + word_char_last);
 	int pos_word_len = sentence.word_char[pos].size();
-	for (int k = 0; k < pos_word_len - 1; k++)
+	for (int k = 1; k < pos_word_len - 1; k++)
 	{
 		string cik = sentence.word_char[pos][k];
-		f.push_back("09:*" + cik);
-		f.push_back("10:*" + word_char_first + "*" + cik);
-		f.push_back("11:*" + word_char_last + "*" + cik);
+		f.emplace_back("09:*" + cik);
+		f.emplace_back("10:*" + word_char_first + "*" + cik);
+		f.emplace_back("11:*" + word_char_last + "*" + cik);
 		string cikp1 = sentence.word_char[pos][k + 1];
 		if (cik == cikp1)
 		{
-			f.push_back("13:*" + cik + "*" + "consecutive");
+			f.emplace_back("13:*" + cik + "*" + "consecutive");
 		}
 	}
+	if (sentence.word_char[pos].size() > 1)
+	{
+		if (sentence.word_char[pos][0] == sentence.word_char[pos][1])
+			f.emplace_back("13:*" + sentence.word_char[pos][0] + "*" + "consecutive");
+	}	
 	if (pos_word_len == 1)
 	{
-		f.push_back("12:*" + word + "*" + word_char_m1m1 + "*" + word_char_p1_first);
+		f.emplace_back("12:*" + word + "*" + word_char_m1m1 + "*" + word_char_p1_first);
 	}
 	for (int k = 0; k <pos_word_len; k++)
 	{
 		if (k >= 4)break;
-		string prefix, suffix;
-		//»ñÈ¡Ç°×º
-		for (int n = 0; n <= k; n++)
-		{
-			prefix = prefix + sentence.word_char[pos][n];
-		}
-		//»ñÈ¡ºó×º¡£
-		for (int n = pos_word_len - k - 1; n <= pos_word_len - 1; n++)
-		{
-			suffix = suffix + sentence.word_char[pos][n];
-		}
-		f.push_back("14:*" + prefix);
-		f.push_back("15:*" + suffix);
+		f.emplace_back("14:*" + accumulate(sentence.word_char[pos].begin(), sentence.word_char[pos].begin() + k + 1, string("")));
+		f.emplace_back("15:*" + accumulate(sentence.word_char[pos].end() - (k + 1), sentence.word_char[pos].end(), string("")));
 	}
 	return f;
 }
-//´´½¨ÌØÕ÷¿Õ¼ä
+//åˆ›å»ºç‰¹å¾ç©ºé—´
 void log_linear_model::create_feature_space()
 {
+	DWORD t1, t2;
+	t1 = timeGetTime();
 	int count_feature = 0, count_tag = 0;
-	for (auto z = train.sentences.begin(); z != train.sentences.end(); z++)
+	for (auto z = train.sentences.begin(); z != train.sentences.end(); ++z)
 	{
 		for (int i = 0; i < z->word.size(); i++)
 		{
-			vector <string> f;
-			f = create_feature(*z, i);
+			//vector <string> f=create_feature(*z, i);
+			vector <string> f(create_feature(*z, i));
 			for (auto q = f.begin(); q != f.end(); q++)
 			{
-				if (model.find(*q) == model.end())//Èç¹û²»ÔÚ´ÊĞÔÀïÃæ¡£
+				if (model.find(*q) == model.end())//å¦‚æœä¸åœ¨è¯æ€§é‡Œé¢ã€‚
 				{
-					model[*q] = count_feature;
-					value.push_back(*q);
+					model.emplace(*q, count_feature);
+					//	model.insert({ *q, count_feature });
+					value.emplace_back(*q);
 					count_feature++;
 				}
 			}
 			if (tag.find(z->tag[i]) == tag.end())
 			{
-				tag[z->tag[i]] = count_tag;
+				tag.emplace(z->tag[i], count_tag);
+				//tag.insert({ z->tag[i] , count_tag });
+				vector_tag.emplace_back(z->tag[i]);
 				count_tag++;
 			}
 		}
 	}
+	t2 = timeGetTime();
+	cout << "Use Time:" << (t2 - t1)*1.0 / 1000 << endl;
+
 	w.reserve(tag.size()*model.size());
 	for (int i = 0; i < tag.size()*model.size(); i++)
 	{
-		w.push_back(0);
+		w.emplace_back(0);
 	}
-	//cout << w.size() << endl;
 	cout << "the total number of features is " << model.size() << endl;
 	cout << "the total number of tags is " << tag.size() << endl;
+
 }
-vector<int> log_linear_model::get_id(vector<string> f)
+vector<int> log_linear_model::get_id(vector<string> &f)
 {
 	vector<int> fv;
 	for (auto q = f.begin(); q != f.end(); q++)
@@ -122,7 +125,7 @@ vector<int> log_linear_model::get_id(vector<string> f)
 	}
 	return fv;
 }
-int log_linear_model::count_score(int offset, vector<int> fv)
+int log_linear_model::count_score(int offset, vector<int>& fv)
 {
 	double score = 0;
 	for (auto z0 = fv.begin(); z0 != fv.end(); z0++)
@@ -131,85 +134,78 @@ int log_linear_model::count_score(int offset, vector<int> fv)
 	}
 	return score;
 }
-double log_linear_model::max(double x1, double x2)
-{
-	if (x1 > x2)
-	{
-		return x1;
-	}
-	else
-	{
-		return x2;
-	}
-}
 void log_linear_model::update_w(int eta)
 {
 
-	for (auto z = g.begin(); z != g.end(); z++)
+	for (auto z = g.begin(); z != g.end(); ++z)
 	{
 		w[z->first] += z->second;
 	}
 }
-void log_linear_model::update_g(sentence sen, int pos, string correct_tag)
+void log_linear_model::update_g(sentence &sen, int pos, string &correct_tag)
 {
-	vector<string> f = create_feature(sen, pos);
-	vector<int> fv = get_id(f);
-	//¼ÓÉÏÕıÈ·µÄ´ÊĞÔ¡£
+	vector<string> f(create_feature(sen, pos));
+	vector<int> fv (get_id(f));
+	//åŠ ä¸Šæ­£ç¡®çš„è¯æ€§ã€‚
 	int offset = tag[correct_tag] * model.size();
+	int index;
 	for (auto i = fv.begin(); i != fv.end(); i++)
 	{
-		int index = offset + *i;
+		index = offset + *i;
 		g[index]++;
 	}
-	//¼õÈ¥µ±Ç°µÄ¸ÅÂÊ¡£
-	//Çó·ÖÄ¸¡£
+	//å‡å»å½“å‰çš„æ¦‚ç‡ã€‚
+	//æ±‚åˆ†æ¯ã€‚
 	double	denominator = 0.0;
-	for (auto t = tag.begin(); t != tag.end(); t++)
+	int score;
+	for (int i=0; i< vector_tag.size();i++)
 	{
-		int offset = t->second*model.size();
-		int score = count_score(offset, fv);
+		offset =i*model.size();
+		score = count_score(offset, fv);
 		denominator += exp(score);
 	}
-	//Çó·ÖÊ½¡£	
-	for (auto t0 = tag.begin(); t0 != tag.end(); t0++)
+	//æ±‚åˆ†å¼ã€‚	
+	for (int i = 0; i< vector_tag.size(); i++)
 	{
-		int offset = t0->second*model.size();
-		int score = count_score(offset, fv);
-		for (auto z = fv.begin(); z != fv.end(); z++)
+		offset = i*model.size();
+		score = count_score(offset, fv);
+		for (auto z = fv.begin(); z != fv.end(); ++z)
 		{
-			int index = offset + *z;
+			index = offset + *z;
 			g[index] = g[index] - (exp(score) / denominator);
 		}
 	}
 }
-string log_linear_model::maxscore_tag(sentence  sen, int pos)
+string log_linear_model::maxscore_tag(sentence &sen, int pos)
 {
-	double max_num = -1e10, score;
+	double max_num = 0, score;
 	string max_tag;
-	vector<string> f = create_feature(sen, pos);
-	vector<int> fv = get_id(f);
-	for (auto z = tag.begin(); z != tag.end(); z++)//±éÀú´ÊĞÔ
+	vector<string> f(create_feature(sen, pos));
+	vector<int> fv (get_id(f));
+	int offset;
+	for (int i = 0; i< vector_tag.size(); i++)
 	{
-		int offset = z->second*model.size();
+		offset = i*model.size();
 		score = count_score(offset, fv);
-		if (score > max_num + 1e-10)
+		if (score >=max_num )
 		{
 			max_num = score;
-			max_tag = z->first;
+			max_tag = vector_tag[i];
 		}
 	}
 	return max_tag;
 }
-double log_linear_model::evaluate(dataset data)
+double log_linear_model::evaluate(dataset &data)
 {
 	int c = 0, total = 0;
-	for (auto z = data.sentences.begin(); z != data.sentences.end(); z++)
+	string max_tag, correct_tag;
+	for (auto z = data.sentences.begin(); z != data.sentences.end(); ++z)
 	{
 		for (int z0 = 0; z0 < z->word.size(); z0++)
 		{
 			total++;
-			string max_tag = maxscore_tag(*z, z0);
-			string correct_tag = z->tag[z0];
+			max_tag= maxscore_tag(*z,z0);
+			correct_tag = z->tag[z0];
 			if (max_tag == correct_tag)
 			{
 				c++;
@@ -218,15 +214,62 @@ double log_linear_model::evaluate(dataset data)
 	}
 	return (c / double(total));
 }
-void log_linear_model::SGD_online_training()
+void log_linear_model::SGD_online_training( bool shuffle, int iterator, int exitor)
 {
+	//æ„å»ºæ–‡ä»¶åã€‚
+	string file_name;
+	if (test.name.size() != 0)
+	{
+		file_name = "big_result_";
+	}
+	else
+	{
+		file_name = "small_result_";
+	}
+	if (shuffle)
+	{
+		file_name += "shuffle_";
+	}
+	file_name += ".txt";
+	ofstream result(file_name);
+	if (!result)
+	{
+		cout << "don't open  file" << endl;
+	}
+	result << train.name << "å…±" << train.sentence_count << "ä¸ªå¥å­ï¼Œå…±" << train.word_count << "ä¸ªè¯" << endl;
+	result << dev.name << "å…±" << dev.sentence_count << "ä¸ªå¥å­ï¼Œå…±" << dev.word_count << "ä¸ªè¯" << endl;
+	if (test.name.size() != 0)
+	{
+		result << test.name << "å…±" << test.sentence_count << "ä¸ªå¥å­ï¼Œå…±" << test.word_count << "ä¸ªè¯" << endl;
+	}
+	result << " the total number of features is " << model.size() << endl;
+	int update_times = 0;
+	int count = 0;
 	double max_train_precision = 0;
+	int max_train_iterator = 0;
+
 	double max_dev_precision = 0;
-	int B = 50, b = 0, eta = 0.01;//³õÊÔ²½³¤¡£
-	for (int i = 0; i < 20; i++)
+	int max_dev_iterator = 0;
+
+	double max_test_precision = 0;
+	int max_test_iterator = 0;
+
+	cout << "using W to predict dev data..." << endl;
+	result << "using w to predict dev data..." << endl;
+	DWORD t1, t2, t3, t4;
+	t1 = timeGetTime();
+	int B = 50, b = 0, eta = 0.01;//åˆè¯•æ­¥é•¿ã€‚
+	for (int i = 0; i < iterator; i++)
 	{
 		cout << "iterator " << i << endl;
-		for (auto sen = train.sentences.begin(); sen != train.sentences.end(); sen++)
+		result << "iterator " << i << endl;
+		t3 = timeGetTime();
+		if (shuffle)
+		{
+			cout << "æ­£åœ¨æ‰“ä¹±æ•°æ®" << endl;
+			train.shuffle();
+		}
+		for (auto sen = train.sentences.begin(); sen != train.sentences.end(); ++sen)
 		{
 			for (int pos = 0; pos < sen->word.size(); pos++)
 			{
@@ -235,7 +278,7 @@ void log_linear_model::SGD_online_training()
 				if (B == b)
 				{
 					update_w(eta);
-					eta = max(0.999*eta, 0.00001);
+//					eta = max(0.999*eta, 0.00001);
 					b = 0;
 					g.clear();
 				}
@@ -245,33 +288,65 @@ void log_linear_model::SGD_online_training()
 		{
 			update_w(eta);
 			b = 0;
-			g.clear();
+			g.clear();	
 		}
-		save_file(i);
-		cout << w.size() << endl;
+		//save_file(i);
 		double train_precision = evaluate(train);
 		cout << train.name << "=" << train_precision << endl;
+		result << train.name << "=" << train_precision << endl;
+
 		double dev_precision = evaluate(dev);
 		cout << dev.name << "=" << dev_precision << endl;
+		result << dev.name << "=" << dev_precision << endl;
+
 		if (train_precision > max_train_precision)
 		{
 			max_train_precision = train_precision;
+			max_train_iterator = i;
 		}
-		if (dev_precision > max_train_precision)
+		if (dev_precision > max_dev_precision)
 		{
 			max_dev_precision = dev_precision;
+			max_dev_iterator = i;
+			count = 0;
+		}
+		else
+		{
+			count++;
+		}
+		if (test.name.size() != 0)
+		{
+			double test_precision = evaluate(test);
+			cout << test.name << "=" << test_precision << endl;
+			result << test.name << "=" << test_precision << endl;
+			if (test_precision > max_test_precision)
+			{
+				max_test_precision = test_precision;
+				max_test_iterator = i;
+			}
+		}
+
+		t4 = timeGetTime();
+		cout << "Use Time:" << (t4 - t3)*1.0 / 1000 << endl;
+		result << "Use Time:" << (t4 - t3)*1.0 / 1000 << endl;
+		if (count >= exitor)
+		{
+			break;
 		}
 	}
-	cout << train.name << "=" << max_train_precision << endl;
-	cout << dev.name << "=" << max_dev_precision << endl;
+	cout << train.name + "æœ€å¤§å€¼æ˜¯ï¼š" << "=" << max_train_precision << "åœ¨" << max_train_iterator << "æ¬¡" << endl;
+	cout << dev.name + "æœ€å¤§å€¼æ˜¯ï¼š" << "=" << max_dev_precision << "åœ¨" << max_dev_iterator << "æ¬¡" << endl;
+	result << train.name + "æœ€å¤§å€¼æ˜¯ï¼š" << "=" << max_train_precision << "åœ¨" << max_train_iterator << "æ¬¡" << endl;
+	result << dev.name + "æœ€å¤§å€¼æ˜¯ï¼š" << "=" << max_dev_precision << "åœ¨" << max_dev_iterator << "æ¬¡" << endl;
+	if (test.name.size() != 0)
+	{
+		cout << test.name + "æœ€å¤§å€¼æ˜¯ï¼š" << "=" << max_test_precision << "åœ¨" << max_test_iterator << "æ¬¡" << endl;
+		result << test.name + "æœ€å¤§å€¼æ˜¯ï¼š" << "=" << max_test_precision << "åœ¨" << max_test_iterator << "æ¬¡" << endl;
+	}
+	t2 = timeGetTime();
+	cout << "Use Time:" << (t2 - t1)*1.0 / 1000 << endl;
+	result << "Use Time:" << (t2 - t1)*1.0 / 1000 << endl;
 }
-
-log_linear_model::log_linear_model()
-{
-	train.read_data("train");
-	dev.read_data("dev");
-}
-
 
 void log_linear_model::save_file(int i)
 {
@@ -300,7 +375,21 @@ void log_linear_model::save_file(int i)
 	}
 
 }
-
+log_linear_model::log_linear_model(const string &train_, const string &dev_, const string &test_)
+{
+	if (train_ != "")
+	{
+		train.read_data(train_);
+	}
+	if (dev_ != "")
+	{
+		dev.read_data(dev_);
+	}
+	if (test_ != "")
+	{
+		test.read_data(test_);
+	}
+}
 log_linear_model::~log_linear_model()
 {
 }

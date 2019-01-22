@@ -13,3 +13,4 @@ public:
 	vector<vector<string>> word_char;
 	~sentence() {}
 };
+
